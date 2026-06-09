@@ -1,0 +1,71 @@
+blueprint:
+  name: ComEd Hourly Pricing — Free/Negative Price Radiator
+  description: >
+    Turns on an oil radiator when ComEd electricity price drops to zero or
+    negative cents AND outside temperature is below a configurable threshold.
+    Uses free/negative electricity as an opportunity to add heat passively
+    rather than letting the grid pay you to do nothing.
+
+    Unlike the other automations in this collection, this uses an absolute
+    price threshold (≤ 0¢) rather than a mean-relative one — free/negative
+    pricing is an absolute condition that doesn't need context.
+
+  domain: automation
+  input:
+    price_sensor:
+      name: ComEd Hourly Price Sensor
+      description: Current hour average price in cents (e.g. sensor.comed_current_hour_average_price)
+      selector:
+        entity:
+          domain: sensor
+    weather_entity:
+      name: Weather Entity
+      description: Weather entity to read outside temperature from (e.g. weather.forecast_home)
+      selector:
+        entity:
+          domain: weather
+    radiator_switch:
+      name: Radiator Switch
+      description: Switch or smart plug controlling the oil radiator (e.g. switch.radiator_outlet)
+      selector:
+        entity:
+          domain: switch
+    temp_threshold:
+      name: Outside Temperature Threshold (°F)
+      description: Only run the radiator if outside temperature is below this value. Default 60°F.
+      default: 60
+      selector:
+        number:
+          min: 32
+          max: 75
+          unit_of_measurement: "°F"
+
+trigger:
+  - trigger: state
+    entity_id: !input price_sensor
+  - trigger: homeassistant
+    event: start
+
+action:
+  - choose:
+      - conditions:
+          - condition: numeric_state
+            entity_id: !input price_sensor
+            below: 0
+            alias: ComEd price is negative
+          - condition: numeric_state
+            entity_id: !input weather_entity
+            attribute: temperature
+            below: !input temp_threshold
+            alias: Outside temperature below threshold
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: !input radiator_switch
+        alias: Free electricity and cold outside
+    default:
+      - action: switch.turn_off
+        target:
+          entity_id: !input radiator_switch
+
+mode: single
