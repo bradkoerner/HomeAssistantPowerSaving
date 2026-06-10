@@ -1,46 +1,8 @@
-blueprint:
-  name: ComEd Hourly Pricing — AC Mode Manager
-  description: >
-    Manages multi-zone AC based on ComEd hourly electricity pricing relative to
-    a rolling mean. Sets price tier (normal/high/extreme) and time window
-    (awake/night) helpers, then calls the Apply AC Settings script to implement
-    zone-level logic.
-
-    Requires the Apply AC Settings script and helpers from the companion package.
-    See https://github.com/YOUR_USERNAME/ha-comed-energy-automations for full
-    installation instructions.
-
-    Price tiers:
-      - normal:  price ≤ 120% of rolling mean
-      - high:    price 120–150% of rolling mean
-      - extreme: price > 150% of rolling mean
-
-    Time windows:
-      - awake: 5:30am – 9:00pm
-      - night: 9:00pm – 5:30am
-
-  domain: automation
-  input:
-    price_sensor:
-      name: ComEd Hourly Price Sensor
-      description: Current hour average price in cents (e.g. sensor.comed_current_hour_average_price)
-      selector:
-        entity:
-          domain: sensor
-    price_mean_sensor:
-      name: ComEd Price Rolling Mean
-      description: Statistics helper — rolling mean of the price sensor (e.g. sensor.comed_price_mean)
-      selector:
-        entity:
-          domain: sensor
-
-variables:
-  price_sensor: !input price_sensor
-  price_mean_sensor: !input price_mean_sensor
-
-trigger:
+alias: AC Mode Manager
+description: Sets AC price tier and time window helpers, then applies AC settings
+triggers:
   - trigger: state
-    entity_id: !input price_sensor
+    entity_id: sensor.comed_current_hour_average_price
     id: price_changed
   - trigger: time
     at: "05:30:00"
@@ -69,22 +31,28 @@ trigger:
   - trigger: homeassistant
     event: start
   - trigger: state
-    entity_id: input_boolean.ac_comfort_override
+    entity_id: input_select.ac_override_mode
     id: override_changed
-
-action:
+actions:
   - if:
       - condition: trigger
         id: midnight_reset
+      - condition: state
+        entity_id: input_select.ac_override_mode
+        state: comfort
     then:
-      - action: input_boolean.turn_off
+      - action: input_select.select_option
         target:
-          entity_id: input_boolean.ac_comfort_override
+          entity_id: input_select.ac_override_mode
+        data:
+          option: none
   - alias: Set price tier
     choose:
       - conditions:
           - condition: template
-            value_template: "{{ states(price_sensor) | float > states(price_mean_sensor) | float * 1.50 }}"
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float >
+              states('sensor.comed_price_mean') | float * 1.50 }}
         sequence:
           - action: input_select.select_option
             target:
@@ -93,7 +61,9 @@ action:
               option: extreme
       - conditions:
           - condition: template
-            value_template: "{{ states(price_sensor) | float > states(price_mean_sensor) | float * 1.20 }}"
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float >
+              states('sensor.comed_price_mean') | float * 1.20 }}
         sequence:
           - action: input_select.select_option
             target:
@@ -126,5 +96,4 @@ action:
           option: night
   - alias: Apply settings
     action: script.apply_ac_settings
-
 mode: single

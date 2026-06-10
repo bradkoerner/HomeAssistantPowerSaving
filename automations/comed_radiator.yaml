@@ -1,71 +1,40 @@
-blueprint:
-  name: ComEd Hourly Pricing — Free/Negative Price Radiator
-  description: >
-    Turns on an oil radiator when ComEd electricity price drops to zero or
-    negative cents AND outside temperature is below a configurable threshold.
-    Uses free/negative electricity as an opportunity to add heat passively
-    rather than letting the grid pay you to do nothing.
-
-    Unlike the other automations in this collection, this uses an absolute
-    price threshold (≤ 0¢) rather than a mean-relative one — free/negative
-    pricing is an absolute condition that doesn't need context.
-
-  domain: automation
-  input:
-    price_sensor:
-      name: ComEd Hourly Price Sensor
-      description: Current hour average price in cents (e.g. sensor.comed_current_hour_average_price)
-      selector:
-        entity:
-          domain: sensor
-    weather_entity:
-      name: Weather Entity
-      description: Weather entity to read outside temperature from (e.g. weather.forecast_home)
-      selector:
-        entity:
-          domain: weather
-    radiator_switch:
-      name: Radiator Switch
-      description: Switch or smart plug controlling the oil radiator (e.g. switch.radiator_outlet)
-      selector:
-        entity:
-          domain: switch
-    temp_threshold:
-      name: Outside Temperature Threshold (°F)
-      description: Only run the radiator if outside temperature is below this value. Default 60°F.
-      default: 60
-      selector:
-        number:
-          min: 32
-          max: 75
-          unit_of_measurement: "°F"
-
-trigger:
+alias: Oil Radiator - Free/Negative ComEd Price
+description: ""
+triggers:
   - trigger: state
-    entity_id: !input price_sensor
+    entity_id: sensor.comed_current_hour_average_price
   - trigger: homeassistant
     event: start
-
-action:
+  - trigger: state
+    entity_id: input_select.ac_override_mode
+    id: override_changed
+actions:
   - choose:
       - conditions:
           - condition: numeric_state
-            entity_id: !input price_sensor
+            entity_id: sensor.comed_current_hour_average_price
             below: 0
-            alias: ComEd price is negative
+            alias: ComEd Hourly < 0 cents
           - condition: numeric_state
-            entity_id: !input weather_entity
+            entity_id: weather.forecast_home
+            below: 60
             attribute: temperature
-            below: !input temp_threshold
-            alias: Outside temperature below threshold
+            alias: Outside temperature < 60
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state:
+              - comfort
+              - none
         sequence:
-          - action: switch.turn_on
+          - alias: Radiator on
+            action: switch.turn_on
+            data: {}
             target:
-              entity_id: !input radiator_switch
-        alias: Free electricity and cold outside
+              entity_id: switch.radiator_outlet
+        alias: Free electricity and cold outside, radiator on
     default:
-      - action: switch.turn_off
+      - alias: Radiator off
+        action: switch.turn_off
+        data: {}
         target:
-          entity_id: !input radiator_switch
-
-mode: single
+          entity_id: switch.radiator_outlet

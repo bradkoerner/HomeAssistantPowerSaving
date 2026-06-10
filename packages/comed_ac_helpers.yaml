@@ -26,13 +26,17 @@ input_select:
       - night
     initial: awake
     icon: mdi:clock-outline
+  
+  ac_override_mode:
+    name: "AC Override Mode"
+    options:
+      - comfort
+      - away
+      - none
+    initial: none
+    icon: mdi:snowflake-check
 
 input_boolean:
-  ac_comfort_override:
-    name: AC Comfort Override
-    initial: false
-    icon: mdi:sofa
-
   windows_open:
     name: Windows Open
     initial: false

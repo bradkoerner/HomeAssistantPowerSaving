@@ -1,62 +1,17 @@
-blueprint:
-  name: ComEd Hourly Pricing — EV Smart Charging
-  description: >
-    Charges an EV based on ComEd hourly pricing relative to a rolling mean,
-    with four SOC-based tiers. The lower the battery, the more aggressively it
-    charges. Includes a manual override to force charging regardless of price.
-
-    Charging tiers:
-      - SOC < 30%:  charge always (emergency threshold)
-      - SOC 30-50%: charge if price < 90% of rolling mean
-      - SOC 50-70%: charge if price < 70% of rolling mean
-      - SOC > 70%:  charge if price < 50% of rolling mean
-
-    All SOC-based tiers include a staleness check — if the battery sensor
-    hasn't updated in 30 minutes, that tier is skipped to avoid acting on
-    stale data.
-
-  domain: automation
-  input:
-    price_sensor:
-      name: ComEd Hourly Price Sensor
-      description: Current hour average price in cents (e.g. sensor.comed_current_hour_average_price)
-      selector:
-        entity:
-          domain: sensor
-    price_mean_sensor:
-      name: ComEd Price Rolling Mean
-      description: Statistics helper — rolling mean of the price sensor (e.g. sensor.comed_price_mean)
-      selector:
-        entity:
-          domain: sensor
-    battery_sensor:
-      name: EV Battery Level Sensor
-      description: EV state of charge in percent (e.g. sensor.2023_ioniq_5_ev_battery_level)
-      selector:
-        entity:
-          domain: sensor
-    charger_switch:
-      name: EV Charger Switch
-      description: Switch that controls the EV charger (e.g. switch.car_charger)
-      selector:
-        entity:
-          domain: switch
-
-variables:
-  price_sensor: !input price_sensor
-  price_mean_sensor: !input price_mean_sensor
-  battery_sensor: !input battery_sensor
-  charger_switch: !input charger_switch
-
-trigger:
+alias: EV Smart Charging - ComEd Price Logic
+description: >
+  Charges EV based on four priority tiers: 1. SOC below 30% → charge always 2.
+  SOC 30-50% → charge below 90% of rolling mean 3. SOC 50-70% → charge below 70%
+  of rolling mean 4. SOC above 70% → charge below 50% of rolling mean
+triggers:
   - trigger: state
-    entity_id: !input battery_sensor
+    entity_id: sensor.2023_ioniq_5_ev_battery_level
   - trigger: state
-    entity_id: !input price_sensor
+    entity_id: sensor.comed_current_hour_average_price
   - trigger: homeassistant
     event: start
-
-action:
+conditions: []
+actions:
   - choose:
       - conditions:
           - condition: state
@@ -65,54 +20,73 @@ action:
         sequence:
           - action: switch.turn_on
             target:
-              entity_id: !input charger_switch
+              entity_id: switch.car_charger
       - conditions:
           - condition: template
-            value_template: "{{ (now() - states[battery_sensor].last_updated).total_seconds() < 1800 }}"
-          - condition: template
-            value_template: "{{ states(battery_sensor) | float < 30 }}"
+            value_template: >
+              {{ (now() -
+              states['sensor.2023_ioniq_5_ev_battery_level'].last_updated).total_seconds()
+              < 1800 }}
+          - condition: numeric_state
+            entity_id: sensor.2023_ioniq_5_ev_battery_level
+            below: 30
         sequence:
           - action: switch.turn_on
             target:
-              entity_id: !input charger_switch
+              entity_id: switch.car_charger
         alias: EV below 30%
       - conditions:
           - condition: template
-            value_template: "{{ (now() - states[battery_sensor].last_updated).total_seconds() < 1800 }}"
+            value_template: >
+              {{ (now() -
+              states['sensor.2023_ioniq_5_ev_battery_level'].last_updated).total_seconds()
+              < 1800 }}
+          - condition: numeric_state
+            entity_id: sensor.2023_ioniq_5_ev_battery_level
+            below: 50
           - condition: template
-            value_template: "{{ states(battery_sensor) | float < 50 }}"
-          - condition: template
-            value_template: "{{ states(price_sensor) | float < states(price_mean_sensor) | float * 0.90 }}"
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float <
+              states('sensor.comed_price_mean') | float * 0.90 }}
         sequence:
           - action: switch.turn_on
             target:
-              entity_id: !input charger_switch
-        alias: EV 30-50% and price < 90% of mean
+              entity_id: switch.car_charger
+        alias: EV 30-50% and electricity < 90% of mean
       - conditions:
           - condition: template
-            value_template: "{{ (now() - states[battery_sensor].last_updated).total_seconds() < 1800 }}"
+            value_template: >
+              {{ (now() -
+              states['sensor.2023_ioniq_5_ev_battery_level'].last_updated).total_seconds()
+              < 1800 }}
+          - condition: numeric_state
+            entity_id: sensor.2023_ioniq_5_ev_battery_level
+            below: 70
           - condition: template
-            value_template: "{{ states(battery_sensor) | float < 70 }}"
-          - condition: template
-            value_template: "{{ states(price_sensor) | float < states(price_mean_sensor) | float * 0.70 }}"
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float <
+              states('sensor.comed_price_mean') | float * 0.70 }}
         sequence:
           - action: switch.turn_on
             target:
-              entity_id: !input charger_switch
-        alias: EV 50-70% and price < 70% of mean
+              entity_id: switch.car_charger
+        alias: EV 50-70% and electricity < 70% of mean
       - conditions:
           - condition: template
-            value_template: "{{ (now() - states[battery_sensor].last_updated).total_seconds() < 1800 }}"
+            value_template: >
+              {{ (now() -
+              states['sensor.2023_ioniq_5_ev_battery_level'].last_updated).total_seconds()
+              < 1800 }}
           - condition: template
-            value_template: "{{ states(price_sensor) | float < states(price_mean_sensor) | float * 0.50 }}"
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float <
+              states('sensor.comed_price_mean') | float * 0.50 }}
         sequence:
           - action: switch.turn_on
             target:
-              entity_id: !input charger_switch
-        alias: EV > 70% and price < 50% of mean
+              entity_id: switch.car_charger
+        alias: Electricity < 50% of mean
     default:
       - action: switch.turn_off
         target:
-          entity_id: !input charger_switch
-
-mode: single
+          entity_id: switch.car_charger

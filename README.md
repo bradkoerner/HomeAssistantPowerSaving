@@ -8,10 +8,14 @@ Home Assistant automations for managing home energy load based on [ComEd hourly 
 
 | File | Description |
 |---|---|
-| `comed_ac_mode_manager.yaml` | Multi-zone AC — sets price tier + time window helpers, calls Apply AC Settings script |
-| `comed_ev_charging.yaml` | EV charger — four SOC-based charging tiers relative to rolling mean |
-| `comed_dehumidifier.yaml` | Dehumidifier — runs only when price < 80% of mean and windows are closed |
-| `comed_radiator.yaml` | Oil radiator — runs when price is zero or negative and it's cold outside |
+| `automations/ac_mode_manager.yaml` | Multi-zone AC — sets price tier + time window helpers, calls Apply AC Settings script |
+| `automations/ev_charging.yaml` | EV charger — four SOC-based charging tiers relative to rolling mean |
+| `automations/dehumidifier.yaml` | Dehumidifier — runs only when price < 80% of mean and windows are closed |
+| `automations/radiator.yaml` | Oil radiator — runs when price is zero or negative and it's cold outside |
+| `scripts/apply_ac_settings.yaml` | AC zone implementation — called by AC Mode Manager |
+| `packages/comed_ac_helpers.yaml` | All required helpers |
+
+These are reference YAMLs intended to be adapted to your setup. Entity IDs are hardcoded to the author's devices — update them to match your own before use. Remove zones you don't have, add ones you do.
 
 ---
 
@@ -46,37 +50,48 @@ Then calls `script.apply_ac_settings` to implement zone-level logic.
 | high | 120–150% of rolling mean |
 | extreme | > 150% of rolling mean |
 
-### Living Room AC (LG Smart Unit — full climate control)
+### Override Modes
 
-| Time Window | Price Tier | Preset | Temp | Fan |
-|---|---|---|---|---|
-| Night | any | eco | 82° | low |
-| Awake | extreme | eco | 78° | high |
-| Awake | high | eco | 74° | high |
-| Awake | normal | none | 72° | high |
+`input_select.ac_override_mode` has three options that bypass normal price logic:
 
-Eco mode is used during high/extreme pricing and at night — the LG unit cuts the compressor when the setpoint is reached and polls every 3 minutes to check if more cooling is needed, reducing energy draw without sacrificing comfort entirely.
+| Option | Description |
+|---|---|
+| `none` | Normal price-aware operation |
+| `comfort` | Full comfort regardless of price — resets to `none` at midnight |
+| `away` | Power saving for multi-day absences — must be turned off manually |
 
-> **Note on action ordering:** `set_preset_mode` must be called *before* `set_temperature`. Setting eco after temperature causes the unit to override the setpoint with its own eco default.
+### Living Room AC Decision Table
 
-### Primary Bedroom AC (dumb unit on smart plug)
+| Time Window | Override | Price Tier | Temp | Fan | Preset |
+|---|---|---|---|---|---|
+| Awake | comfort | any | 72° | high | none |
+| Awake | away | any | 78° | high | eco |
+| Awake | none | extreme | 78° | high | eco |
+| Awake | none | high | 74° | high | eco |
+| Awake | none | normal | 72° | high | none |
+| Night | away | any | 82° | low | eco |
+| Night | none | any | 82° | low | eco |
+| Night | comfort | any | 72° | high | none |
 
-- On from 8pm daily
-- Off during extreme pricing between 5:30am–8pm
-- Always on when comfort override is active
+> **Note on eco mode + action ordering:** `set_preset_mode` must be called *before* `set_temperature`. The LG unit overrides the setpoint with its own eco default if eco is activated after a temperature is set.
 
-### Bedroom 3 AC (dumb unit on smart plug)
+### Primary Bedroom AC
 
-- On 6pm–7am daily
-- On weekends 11:30am–3:30pm
-- No price logic (serves as kitchen buffer zone — kitchen has no AC)
+| Override | Time Window | State |
+|---|---|---|
+| comfort | any | on |
+| away | night | on |
+| away | awake | off |
+| none | any | on (except extreme pricing 5:30am–8pm) |
 
-### Comfort Override
+### Bedroom 3 AC
 
-`input_boolean.ac_comfort_override` bypasses all price logic for living room and primary bedroom:
-- Living room runs at 72° / high fan / no eco
-- Primary bedroom stays on regardless of price
-- Resets automatically at midnight
+| Override | State |
+|---|---|
+| away | off |
+| none/comfort | on 6pm–7am daily; on weekends 11:30am–3:30pm |
+
+No price logic — serves as kitchen buffer zone (kitchen has no AC).
 
 ---
 
@@ -103,7 +118,7 @@ Runs when price is below 80% of the rolling mean **and** windows are closed. Tri
 
 ## Oil Radiator
 
-Turns on when ComEd price drops to zero or negative cents and outside temperature is below a configurable threshold (default 60°F). Takes advantage of free/negative pricing to add passive heat rather than letting the grid pay you to do nothing.
+Turns on when ComEd price drops to zero or negative cents and outside temperature is below 60°F. Takes advantage of free/negative pricing to add passive heat rather than letting the grid pay you to do nothing.
 
 ---
 
@@ -113,74 +128,40 @@ Turns on when ComEd price drops to zero or negative cents and outside temperatur
 - [ComEd Hourly Pricing](https://www.home-assistant.io/integrations/opower/) integration or equivalent providing a current hour average price sensor
 - A [Statistics helper](https://www.home-assistant.io/integrations/statistics/) configured as a rolling mean of the price sensor (30–60 day window recommended)
 
-### Entities (AC automations)
+### Entities
 
 | Entity | Type | Description |
 |---|---|---|
 | `sensor.comed_current_hour_average_price` | sensor | Current hour price in cents |
 | `sensor.comed_price_mean` | sensor | Statistics helper — rolling mean |
-| `climate.dining_room_living_room_air_conditioner` | climate | LG smart AC unit |
+| `climate.dining_room_living_room_air_conditioner` | climate | LG smart AC unit (living room) |
 | `switch.primary_bedroom_a_c` | switch | Smart plug, primary bedroom window AC |
 | `switch.bedroom_3_a_c` | switch | Smart plug, bedroom 3 window AC |
+| `switch.car_charger` | switch | EV charger |
+| `sensor.2023_ioniq_5_ev_battery_level` | sensor | EV battery SOC % |
+| `switch.dehumidifier_plug` | switch | Smart plug, dehumidifier |
+| `switch.radiator_outlet` | switch | Smart plug, oil radiator |
+| `weather.forecast_home` | weather | Outside temperature source |
 
-Entity IDs in the script are hardcoded. Update them to match your setup before installing.
+### Helpers
+
+| Helper | Type | Options / Notes |
+|---|---|---|
+| `input_select.ac_price_tier` | Dropdown | normal, high, extreme |
+| `input_select.ac_time_window` | Dropdown | awake, night |
+| `input_select.ac_override_mode` | Dropdown | none, comfort, away |
+| `input_boolean.windows_open` | Toggle | On when windows are open |
+| `input_boolean.ev_charge_override` | Toggle | Forces EV charging regardless of price |
 
 ---
 
 ## Installation
 
-### Step 1 — Helpers
-
-**Option A: Package file (recommended)**
-
-If packages are enabled in `configuration.yaml`:
-```yaml
-homeassistant:
-  packages: !include_dir_named packages
-```
-Copy `packages/comed_ac_helpers.yaml` into your `packages/` directory and restart HA.
-
-**Option B: Manual**
-
-Create each helper via Settings → Helpers:
-
-| Helper | Type | Options |
-|---|---|---|
-| `input_select.ac_price_tier` | Dropdown | normal, high, extreme |
-| `input_select.ac_time_window` | Dropdown | awake, night |
-| `input_boolean.ac_comfort_override` | Toggle | — |
-| `input_boolean.windows_open` | Toggle | — |
-| `input_boolean.ev_charge_override` | Toggle | — |
-
-### Step 2 — Statistics Helper
-
-Create a Statistics helper for the rolling price mean:
-- **Source:** your ComEd price sensor
-- **Stat type:** mean
-- **Max age:** 720–1440 hours (30–60 days)
-- **Sampling size:** 5000
-
-### Step 3 — Apply AC Settings Script
-
-Go to Settings → Automations & Scenes → Scripts → Add Script → Edit in YAML. Paste the contents of `scripts/apply_ac_settings.yaml`. Update entity IDs to match your setup before saving.
-
-### Step 4 — Import Blueprints
-
-Import whichever automations apply to your setup:
-
-**AC Mode Manager**
-[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/YOUR_USERNAME/ha-comed-energy-automations/blob/main/blueprints/automation/comed_ac_mode_manager.yaml)
-
-**EV Smart Charging**
-[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/YOUR_USERNAME/ha-comed-energy-automations/blob/main/blueprints/automation/comed_ev_charging.yaml)
-
-**Dehumidifier**
-[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/YOUR_USERNAME/ha-comed-energy-automations/blob/main/blueprints/automation/comed_dehumidifier.yaml)
-
-**Oil Radiator**
-[![Import Blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https://github.com/YOUR_USERNAME/ha-comed-energy-automations/blob/main/blueprints/automation/comed_radiator.yaml)
-
-Or manually: Settings → Automations & Scenes → Blueprints → Import Blueprint, paste the raw GitHub URL of the blueprint file.
+1. **Create helpers** — via Settings → Helpers, or drop `packages/comed_ac_helpers.yaml` into your `packages/` directory (requires packages enabled in `configuration.yaml`) and restart HA
+2. **Create the Statistics helper** for the rolling price mean — source: ComEd price sensor, stat type: mean, max age: 720–1440 hours, sampling size: 5000
+3. **Update entity IDs** in all YAML files to match your devices
+4. **Paste the script** — Settings → Automations & Scenes → Scripts → Add Script → Edit in YAML, paste `scripts/apply_ac_settings.yaml`
+5. **Paste each automation** — Settings → Automations & Scenes → Automations → Add Automation → Edit in YAML
 
 ---
 
@@ -189,14 +170,13 @@ Or manually: Settings → Automations & Scenes → Blueprints → Import Bluepri
 ```
 ha-comed-energy-automations/
   README.md
-  blueprints/
-    automation/
-      comed_ac_mode_manager.yaml    ← AC mode + time window logic
-      comed_ev_charging.yaml        ← EV SOC-based charging tiers
-      comed_dehumidifier.yaml       ← Dehumidifier price control
-      comed_radiator.yaml           ← Free/negative price radiator
+  automations/
+    ac_mode_manager.yaml      ← AC mode + time window logic, calls script
+    ev_charging.yaml          ← EV SOC-based charging tiers
+    dehumidifier.yaml         ← Dehumidifier price control
+    radiator.yaml             ← Free/negative price radiator
   scripts/
-    apply_ac_settings.yaml          ← AC zone implementation (paste into Scripts editor)
+    apply_ac_settings.yaml    ← AC zone implementation (called by ac_mode_manager)
   packages/
-    comed_ac_helpers.yaml           ← All required helpers (drop into packages/ directory)
+    comed_ac_helpers.yaml     ← All required helpers
 ```
