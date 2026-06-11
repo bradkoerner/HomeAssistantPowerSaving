@@ -1,4 +1,4 @@
-# ComEd Hourly Pricing — Energy Automations for Home Assistant
+# ComEd Hourly Pricing - Energy Automations for Home Assistant
 
 Home Assistant automations for managing home energy load based on [ComEd hourly electricity pricing](https://www.comed.com/MyAccount/MyBills/Pages/CurrentHourlyPricing.aspx). Pricing is evaluated relative to a rolling mean rather than fixed thresholds, so the system adapts automatically to seasonal price changes without needing manual tuning.
 
@@ -8,14 +8,14 @@ Home Assistant automations for managing home energy load based on [ComEd hourly 
 
 | File | Description |
 |---|---|
-| `automations/ac_mode_manager.yaml` | Multi-zone AC — sets price tier + time window helpers, calls Apply AC Settings script |
-| `automations/ev_charging.yaml` | EV charger — four SOC-based charging tiers relative to rolling mean |
-| `automations/dehumidifier.yaml` | Dehumidifier — runs only when price < 80% of mean and windows are closed |
-| `automations/radiator.yaml` | Oil radiator — runs when price is zero or negative and it's cold outside |
-| `scripts/apply_ac_settings.yaml` | AC zone implementation — called by AC Mode Manager |
+| `automations/ac_mode_manager.yaml` | Multi-zone AC - sets price tier + time window helpers, calls Apply AC Settings script |
+| `automations/ev_charging.yaml` | EV charger - four SOC-based charging tiers relative to rolling mean |
+| `automations/dehumidifier.yaml` | Dehumidifier - runs only when price < 80% of mean and windows are closed |
+| `automations/radiator.yaml` | Oil radiator - runs when price is zero or negative and it's cold outside |
+| `scripts/apply_ac_settings.yaml` | AC zone implementation - called by AC Mode Manager |
 | `packages/comed_ac_helpers.yaml` | All required helpers |
 
-These are reference YAMLs intended to be adapted to your setup. Entity IDs are hardcoded to the author's devices — update them to match your own before use. Remove zones you don't have, add ones you do.
+These are reference YAMLs intended to be adapted to your setup. Entity IDs are hardcoded to the author's devices - update them to match your own before use. Remove zones you don't have, add ones you do.
 
 ---
 
@@ -29,7 +29,7 @@ All automations (except the radiator) use a **rolling mean** of the ComEd price 
 
 The rolling mean is a [Statistics helper](https://www.home-assistant.io/integrations/statistics/) configured over a 30–60 day window.
 
-The oil radiator uses an absolute threshold (≤ 0¢) because free/negative pricing is an absolute condition — it doesn't need context.
+The oil radiator uses an absolute threshold (≤ 0¢) because free/negative pricing is an absolute condition - it doesn't need context.
 
 ---
 
@@ -37,8 +37,8 @@ The oil radiator uses an absolute threshold (≤ 0¢) because free/negative pric
 
 The centerpiece automation. Runs on every ComEd price change and at scheduled time transitions. Sets two helpers that the script reads:
 
-- `input_select.ac_price_tier` — `normal` / `high` / `extreme`
-- `input_select.ac_time_window` — `awake` / `night`
+- `input_select.ac_price_tier` - `normal` / `high` / `extreme`
+- `input_select.ac_time_window` - `awake` / `night`
 
 Then calls `script.apply_ac_settings` to implement zone-level logic.
 
@@ -57,8 +57,8 @@ Then calls `script.apply_ac_settings` to implement zone-level logic.
 | Option | Description |
 |---|---|
 | `none` | Normal price-aware operation |
-| `comfort` | Full comfort regardless of price — resets to `none` at midnight |
-| `away` | Power saving for multi-day absences — must be turned off manually |
+| `comfort` | Full comfort regardless of price - resets to `none` at midnight |
+| `away` | Power saving for multi-day absences - must be turned off manually |
 
 ### Living Room AC Decision Table
 
@@ -91,13 +91,13 @@ Then calls `script.apply_ac_settings` to implement zone-level logic.
 | away | off |
 | none/comfort | on 6pm–7am daily; on weekends 11:30am–3:30pm |
 
-No price logic — serves as kitchen buffer zone (kitchen has no AC).
+No price logic - serves as kitchen buffer zone (kitchen has no AC).
 
 ---
 
 ## EV Smart Charging
 
-Four SOC-based tiers — the lower the battery, the more aggressively it charges:
+Four SOC-based tiers - the lower the battery, the more aggressively it charges:
 
 | SOC | Charges when |
 |---|---|
@@ -106,7 +106,7 @@ Four SOC-based tiers — the lower the battery, the more aggressively it charges
 | 50–70% | Price < 70% of rolling mean |
 | > 70% | Price < 50% of rolling mean |
 
-All SOC tiers include a staleness check — if the battery sensor hasn't updated in 30 minutes, that tier is skipped to avoid acting on stale data. `input_boolean.ev_charge_override` forces charging regardless of price.
+All SOC tiers include a staleness check - if the battery sensor hasn't updated in 30 minutes, that tier is skipped to avoid acting on stale data. `input_boolean.ev_charge_override` forces charging regardless of price.
 
 ---
 
@@ -133,7 +133,7 @@ Turns on when ComEd price drops to zero or negative cents and outside temperatur
 | Entity | Type | Description |
 |---|---|---|
 | `sensor.comed_current_hour_average_price` | sensor | Current hour price in cents |
-| `sensor.comed_price_mean` | sensor | Statistics helper — rolling mean |
+| `sensor.comed_price_mean` | sensor | Statistics helper - rolling mean |
 | `climate.dining_room_living_room_air_conditioner` | climate | LG smart AC unit (living room) |
 | `switch.primary_bedroom_a_c` | switch | Smart plug, primary bedroom window AC |
 | `switch.bedroom_3_a_c` | switch | Smart plug, bedroom 3 window AC |
@@ -157,11 +157,11 @@ Turns on when ComEd price drops to zero or negative cents and outside temperatur
 
 ## Installation
 
-1. **Create helpers** — via Settings → Helpers, or drop `packages/comed_ac_helpers.yaml` into your `packages/` directory (requires packages enabled in `configuration.yaml`) and restart HA
-2. **Create the Statistics helper** for the rolling price mean — source: ComEd price sensor, stat type: mean, max age: 720–1440 hours, sampling size: 5000
+1. **Create helpers** - via Settings → Helpers, or drop `packages/comed_ac_helpers.yaml` into your `packages/` directory (requires packages enabled in `configuration.yaml`) and restart HA
+2. **Create the Statistics helper** for the rolling price mean - source: ComEd price sensor, stat type: mean, max age: 720–1440 hours, sampling size: 5000
 3. **Update entity IDs** in all YAML files to match your devices
-4. **Paste the script** — Settings → Automations & Scenes → Scripts → Add Script → Edit in YAML, paste `scripts/apply_ac_settings.yaml`
-5. **Paste each automation** — Settings → Automations & Scenes → Automations → Add Automation → Edit in YAML
+4. **Paste the script** - Settings → Automations & Scenes → Scripts → Add Script → Edit in YAML, paste `scripts/apply_ac_settings.yaml`
+5. **Paste each automation** - Settings → Automations & Scenes → Automations → Add Automation → Edit in YAML
 
 ---
 

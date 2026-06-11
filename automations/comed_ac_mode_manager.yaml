@@ -8,11 +8,8 @@ triggers:
     at: "05:30:00"
     id: wake_up
   - trigger: time
-    at: "20:00:00"
-    id: bedroom_on
-  - trigger: time
-    at: "21:00:00"
-    id: bedtime
+    at: "07:00:00"
+    id: bedroom_3_off
   - trigger: time
     at: "11:30:00"
     id: weekend_midday_start
@@ -23,8 +20,11 @@ triggers:
     at: "19:00:00"
     id: bedroom_3_on
   - trigger: time
-    at: "07:00:00"
-    id: bedroom_3_off
+    at: "20:00:00"
+    id: bedroom_on
+  - trigger: time
+    at: "21:30:00"
+    id: bedtime
   - trigger: time
     at: "00:00:00"
     id: midnight_reset
@@ -81,7 +81,7 @@ actions:
       - conditions:
           - condition: time
             after: "05:30:00"
-            before: "21:00:00"
+            before: "21:30:00"
         sequence:
           - action: input_select.select_option
             target:
