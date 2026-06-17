@@ -30,18 +30,14 @@ input_select:
   ac_override_mode:
     name: "AC Override Mode"
     options:
+      - none
       - comfort
       - away
-      - none
+      - windows_open
     initial: none
     icon: mdi:snowflake-check
 
 input_boolean:
-  windows_open:
-    name: Windows Open
-    initial: false
-    icon: mdi:window-open
-
   ev_charge_override:
     name: EV Charge Override
     initial: false

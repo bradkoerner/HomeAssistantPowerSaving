@@ -1,38 +1,32 @@
 alias: Dehumidifier - Price-Aware Control
-description: Run dehumidifier only when ComEd price < 3¢ and windows are closed
+description: Run dehumidifier only when ComEd price < 80% of mean and windows are closed
 triggers:
   - entity_id: sensor.comed_current_hour_average_price
     id: price_changed
     trigger: state
-  - entity_id: input_boolean.windows_open
-    to: "on"
-    id: windows_opened
-    trigger: state
-  - entity_id: input_boolean.windows_open
-    to: "off"
-    id: windows_closed
+  - entity_id: input_select.ac_override_mode
+    id: override_changed
     trigger: state
 actions:
   - alias: On or off?
     if:
       - condition: template
-        value_template: >
+        value_template: >-
           {{ states('sensor.comed_current_hour_average_price') | float <
           states('sensor.comed_price_mean') | float * 0.80 }}
         alias: Price is below 80% of rolling mean
-      - condition: state
-        entity_id: input_boolean.windows_open
-        state: "off"
+      - condition: not
+        conditions:
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: windows_open
         alias: Windows are closed
     then:
       - action: switch.turn_on
         target:
           entity_id: switch.dehumidifier_plug
-        alias: Turn on dehumidifier
-        data: {}
     else:
       - action: switch.turn_off
         target:
           entity_id: switch.dehumidifier_plug
-        alias: Turn off dehumidifier
 mode: single
