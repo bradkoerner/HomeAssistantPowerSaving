@@ -21,309 +21,6 @@ sequence:
       - conditions:
           - condition: state
             entity_id: input_select.ac_override_mode
-            state: comfort
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 72 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'high' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'none' }}
-        sequence:
-          - action: climate.set_preset_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              preset_mode: none
-          - action: climate.set_temperature
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              temperature: 72
-              hvac_mode: cool
-          - action: climate.set_fan_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              fan_mode: high
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: away
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: awake
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 78 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'high' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'eco' }}
-        sequence:
-          - action: climate.set_preset_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              preset_mode: eco
-          - action: climate.set_temperature
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              temperature: 78
-          - action: climate.set_fan_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              fan_mode: high
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: none
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: night
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 82 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'low' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'eco' }}
-        sequence:
-          - action: climate.set_preset_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              preset_mode: eco
-          - action: climate.set_temperature
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              temperature: 82
-          - action: climate.set_fan_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              fan_mode: low
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: none
-          - condition: state
-            entity_id: input_select.ac_price_tier
-            state: extreme
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: awake
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 78 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'high' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'eco' }}
-        sequence:
-          - action: climate.set_preset_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              preset_mode: eco
-          - action: climate.set_temperature
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              temperature: 78
-          - action: climate.set_fan_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              fan_mode: high
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: none
-          - condition: state
-            entity_id: input_select.ac_price_tier
-            state: high
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: awake
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 74 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'high' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'eco' }}
-        sequence:
-          - action: climate.set_preset_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              preset_mode: eco
-          - action: climate.set_temperature
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              temperature: 74
-          - action: climate.set_fan_mode
-            target:
-              entity_id: climate.dining_room_living_room_air_conditioner
-            data:
-              fan_mode: high
-    default:
-      - condition: and
-        conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: none
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: awake
-          - condition: state
-            entity_id: input_select.ac_price_tier
-            state: normal
-          - condition: or
-            conditions:
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 72 }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'fan_mode') != 'high' }}
-              - condition: template
-                value_template: >-
-                  {{
-                  state_attr('climate.dining_room_living_room_air_conditioner',
-                  'preset_mode') != 'none' }}
-      - action: climate.set_preset_mode
-        target:
-          entity_id: climate.dining_room_living_room_air_conditioner
-        data:
-          preset_mode: none
-      - action: climate.set_temperature
-        target:
-          entity_id: climate.dining_room_living_room_air_conditioner
-        data:
-          temperature: 72
-          hvac_mode: cool
-      - action: climate.set_fan_mode
-        target:
-          entity_id: climate.dining_room_living_room_air_conditioner
-        data:
-          fan_mode: high
-  - alias: Primary bedroom AC
-    choose:
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: comfort
-        sequence:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.primary_bedroom_a_c
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: away
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: night
-        sequence:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.primary_bedroom_a_c
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: away
-          - condition: state
-            entity_id: input_select.ac_time_window
-            state: awake
-        sequence:
-          - action: switch.turn_off
-            target:
-              entity_id: switch.primary_bedroom_a_c
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
-            state: none
-          - condition: state
-            entity_id: input_select.ac_price_tier
-            state: extreme
-          - condition: template
-            value_template: "{{ now().hour >= 5 and now().hour < 20 }}"
-        sequence:
-          - action: switch.turn_off
-            target:
-              entity_id: switch.primary_bedroom_a_c
-    default:
-      - action: switch.turn_on
-        target:
-          entity_id: switch.primary_bedroom_a_c
-  - alias: Bedroom 3 AC
-    choose:alias: Apply AC Settings
-sequence:
-  - alias: Living room AC
-    choose:
-      - conditions:
-          - condition: state
-            entity_id: input_select.ac_override_mode
             state: windows_open
           - condition: not
             conditions:
@@ -468,7 +165,7 @@ sequence:
                 value_template: >-
                   {{
                   state_attr('climate.dining_room_living_room_air_conditioner',
-                  'temperature') != 78 }}
+                  'temperature') != 76 }}
               - condition: template
                 value_template: >-
                   {{
@@ -489,7 +186,7 @@ sequence:
             target:
               entity_id: climate.dining_room_living_room_air_conditioner
             data:
-              temperature: 78
+              temperature: 76
           - action: climate.set_fan_mode
             target:
               entity_id: climate.dining_room_living_room_air_conditioner
@@ -634,13 +331,38 @@ sequence:
           - condition: template
             value_template: "{{ now().hour >= 5 and now().hour < 20 }}"
         sequence:
-          - action: switch.turn_off
+          - action: switch.turn_on
             target:
               entity_id: switch.primary_bedroom_a_c
+            data: {}
     default:
       - action: switch.turn_on
         target:
           entity_id: switch.primary_bedroom_a_c
+  - alias: Bedroom 2 AC
+    choose:
+      - conditions:
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: windows_open
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.bedroom_2_a_c
+            data: {}
+      - conditions:
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: away
+        sequence:
+          - action: switch.turn_off
+            target:
+              entity_id: switch.bedroom_2_a_c
+    default:
+      - action: switch.turn_on
+        target:
+          entity_id: switch.bedroom_2_a_c
+        data: {}
   - alias: Bedroom 3 AC
     choose:
       - conditions:
