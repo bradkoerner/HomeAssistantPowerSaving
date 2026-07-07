@@ -42,3 +42,48 @@ input_boolean:
     name: EV Charge Override
     initial: false
     icon: mdi:ev-station
+
+sensor:
+  # Long window: rises slowly during multi-day price events (heatwaves),
+  # so spikes still register as spikes against it.
+  - platform: statistics
+    name: ComEd Price Mean 14d
+    unique_id: comed_price_mean_14d
+    entity_id: sensor.comed_current_hour_average_price
+    state_characteristic: mean
+    max_age:
+      hours: 336
+    sampling_size: 4500
+
+  # Short window: falls quickly once prices normalize. Median (not mean)
+  # so brief spikes inside the window don't drag it up.
+  - platform: statistics
+    name: ComEd Price Median 3d
+    unique_id: comed_price_median_3d
+    entity_id: sensor.comed_current_hour_average_price
+    state_characteristic: median
+    max_age:
+      hours: 72
+    sampling_size: 1000
+
+template:
+  - sensor:
+      # Asymmetric baseline: min(long mean, short median) rises slowly and
+      # falls fast. Floored at 3 ¢/kWh so multiplier comparisons stay sane
+      # when real-time prices dip near or below zero.
+      - name: ComEd Price Baseline
+        unique_id: comed_price_baseline
+        unit_of_measurement: ¢/kWh
+        state_class: measurement
+        icon: mdi:calculator
+        state: >
+          {% set long = states('sensor.comed_price_mean_14d') | float(none) %}
+          {% set short = states('sensor.comed_price_median_3d') | float(none) %}
+          {% if long is none or short is none %}
+            unavailable
+          {% else %}
+            {{ [ [long, short] | min, 3.0 ] | max | round(2) }}
+          {% endif %}
+        availability: >
+          {{ states('sensor.comed_price_mean_14d') | float(none) is not none
+             and states('sensor.comed_price_median_3d') | float(none) is not none }}

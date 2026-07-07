@@ -126,14 +126,14 @@ Turns on when ComEd price drops to zero or negative cents and outside temperatur
 
 ### Integrations
 - [ComEd Hourly Pricing](https://www.home-assistant.io/integrations/opower/) integration or equivalent providing a current hour average price sensor
-- A [Statistics helper](https://www.home-assistant.io/integrations/statistics/) configured as a rolling mean of the price sensor (30–60 day window recommended)
+- Baseline sensors from `packages/comed_ac_helpers.yaml`: two [statistics](https://www.home-assistant.io/integrations/statistics/) sensors (14-day mean, 3-day median) combined into an asymmetric baseline that rises slowly during multi-day price events and falls fast once prices normalize
 
 ### Entities
 
 | Entity | Type | Description |
 |---|---|---|
 | `sensor.comed_current_hour_average_price` | sensor | Current hour price in cents |
-| `sensor.comed_price_mean` | sensor | Statistics helper - rolling mean |
+| `sensor.comed_price_baseline` | sensor | Asymmetric price baseline: min(14-day mean, 3-day median), floored at 3 ¢/kWh |
 | `climate.dining_room_living_room_air_conditioner` | climate | LG smart AC unit (living room) |
 | `switch.primary_bedroom_a_c` | switch | Smart plug, primary bedroom window AC |
 | `switch.bedroom_3_a_c` | switch | Smart plug, bedroom 3 window AC |

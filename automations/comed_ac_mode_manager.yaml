@@ -52,7 +52,7 @@ actions:
           - condition: template
             value_template: >
               {{ states('sensor.comed_current_hour_average_price') | float >
-              states('sensor.comed_price_mean') | float * 1.50 }}
+              states('sensor.comed_price_baseline') | float * 1.50 }}
         sequence:
           - action: input_select.select_option
             target:
@@ -63,7 +63,7 @@ actions:
           - condition: template
             value_template: >
               {{ states('sensor.comed_current_hour_average_price') | float >
-              states('sensor.comed_price_mean') | float * 1.20 }}
+              states('sensor.comed_price_baseline') | float * 1.20 }}
         sequence:
           - action: input_select.select_option
             target:

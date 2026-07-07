@@ -13,7 +13,7 @@ actions:
       - condition: template
         value_template: >-
           {{ states('sensor.comed_current_hour_average_price') | float <
-          states('sensor.comed_price_mean') | float * 0.80 }}
+          states('sensor.comed_price_baseline') | float * 0.80 }}
         alias: Price is below 80% of rolling mean
       - condition: not
         conditions:
