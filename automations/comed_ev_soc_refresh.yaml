@@ -1,0 +1,30 @@
+# EV SOC Force Refresh — Automation
+#
+# Keeps sensor.2023_ioniq_5_ev_battery_level from going stale while the car is
+# plugged in, so comed_ev_charging.yaml's price-tier logic never has to act on
+# a frozen reading. Gates on the EVSE's own connected status
+# (sensor.garage_car_charger_status) rather than the car's own plug sensor,
+# since the car's plug state comes from the same slow-polling API as the SOC
+# reading and is subject to the same staleness problem.
+#
+# Verify the exact service name in Developer Tools -> Actions for your kia_uvo
+# install before relying on this - some forks/versions name it differently.
+# force_update pulls the latest status Hyundai/Kia's servers already have
+# cached (cheap, no vehicle wake). Do not swap this for the "update" service,
+# which wakes the car over cellular and is rate-limited by the manufacturer -
+# calling it every 15 minutes will burn through the daily quota.
+
+alias: EV Battery - Force Refresh While Charging
+description: Forces a cheap SOC poll every 15 min while the EVSE reports connected
+triggers:
+  - trigger: time_pattern
+    minutes: "/15"
+conditions:
+  - condition: state
+    entity_id: sensor.garage_car_charger_status
+    state: Connected
+actions:
+  - action: kia_uvo.force_update
+    target:
+      entity_id: sensor.2023_ioniq_5_ev_battery_level
+mode: single
