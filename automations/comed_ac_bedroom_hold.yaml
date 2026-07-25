@@ -1,0 +1,155 @@
+# ComEd AC — Bedroom Manual Hold
+#
+# Problem this solves:
+#   In `windows_open` mode the Apply AC Settings script force-OFFs every window-unit
+#   bedroom on each price change. But the kids' rooms (bedroom 2/3) have their only
+#   window occupied by the AC unit, so they can't actually open a window. When those
+#   rooms need cooling at bedtime, a manual switch-on would get clobbered on the next
+#   price tick.
+#
+# How it works:
+#   During `windows_open` the script only ever turns these switches OFF, never ON — so
+#   any transition to ON while override_mode == windows_open can only be the user. That
+#   on-event sets a per-room hold flag; the script skips its force-OFF while the flag is
+#   set, so the room rides through the night.
+#
+# Release rules (differ per room, by design):
+#   - Bedroom 3 (toddler): released at 07:00, on manual-off, or on any override change.
+#   - Primary bedroom:      released at 07:00, on manual-off, or on any override change.
+#   - Bedroom 2 (baby):     NO morning timer — released only on manual-off or override
+#                           change (baby may sleep in to 7–8am; don't cut cooling early).
+#
+# `away` mode needs no special-casing: holds can only be SET during windows_open, and
+# switching INTO away fires the override-change release, so a hold can never survive into
+# away. The script's away branch has no hold condition and always wins.
+
+alias: AC Bedroom Manual Hold
+description: >-
+  Lets window-unit bedrooms be manually run during windows_open mode and held until
+  release. See file header for per-room release rules.
+triggers:
+  # Manual ON (only counts during windows_open — see conditions) -> set that room's hold
+  - trigger: state
+    entity_id: switch.bedroom_2_a_c
+    to: "on"
+    id: set_bedroom_2
+  - trigger: state
+    entity_id: switch.bedroom_3_a_c
+    to: "on"
+    id: set_bedroom_3
+  - trigger: state
+    entity_id: switch.primary_bedroom_a_c
+    to: "on"
+    id: set_primary
+  # Manual OFF while held -> release that room
+  - trigger: state
+    entity_id: switch.bedroom_2_a_c
+    to: "off"
+    id: clear_bedroom_2
+  - trigger: state
+    entity_id: switch.bedroom_3_a_c
+    to: "off"
+    id: clear_bedroom_3
+  - trigger: state
+    entity_id: switch.primary_bedroom_a_c
+    to: "off"
+    id: clear_primary
+  # Morning release — bedroom 3 + primary only (bedroom 2 intentionally excluded)
+  - trigger: time
+    at: "07:00:00"
+    id: morning_release
+  # Any override-mode change releases everything
+  - trigger: state
+    entity_id: input_select.ac_override_mode
+    id: override_changed
+actions:
+  - choose:
+      # --- Set holds: an ON transition is only "manual" during windows_open ---
+      - conditions:
+          - condition: trigger
+            id: set_bedroom_2
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: windows_open
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.bedroom_2_manual_hold
+      - conditions:
+          - condition: trigger
+            id: set_bedroom_3
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: windows_open
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.bedroom_3_manual_hold
+      - conditions:
+          - condition: trigger
+            id: set_primary
+          - condition: state
+            entity_id: input_select.ac_override_mode
+            state: windows_open
+        sequence:
+          - action: input_boolean.turn_on
+            target:
+              entity_id: input_boolean.primary_bedroom_manual_hold
+
+      # --- Manual OFF while held -> release. Guarded on hold==on so the script's own
+      #     OFFs (which only happen when the hold is already off) don't misfire here. ---
+      - conditions:
+          - condition: trigger
+            id: clear_bedroom_2
+          - condition: state
+            entity_id: input_boolean.bedroom_2_manual_hold
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.bedroom_2_manual_hold
+      - conditions:
+          - condition: trigger
+            id: clear_bedroom_3
+          - condition: state
+            entity_id: input_boolean.bedroom_3_manual_hold
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.bedroom_3_manual_hold
+      - conditions:
+          - condition: trigger
+            id: clear_primary
+          - condition: state
+            entity_id: input_boolean.primary_bedroom_manual_hold
+            state: "on"
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id: input_boolean.primary_bedroom_manual_hold
+
+      # --- Morning release: toddler (bedroom 3) + primary only ---
+      - conditions:
+          - condition: trigger
+            id: morning_release
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.bedroom_3_manual_hold
+                - input_boolean.primary_bedroom_manual_hold
+
+      # --- Override change: release all three ---
+      - conditions:
+          - condition: trigger
+            id: override_changed
+        sequence:
+          - action: input_boolean.turn_off
+            target:
+              entity_id:
+                - input_boolean.bedroom_2_manual_hold
+                - input_boolean.bedroom_3_manual_hold
+                - input_boolean.primary_bedroom_manual_hold
+mode: queued
+max: 10

@@ -43,6 +43,20 @@ input_boolean:
     initial: false
     icon: mdi:ev-station
 
+  # Manual-hold flags for window-unit bedrooms during windows_open mode.
+  # No `initial:` on purpose — these persist across HA restarts so a restart
+  # overnight doesn't drop a hold and kill a sleeping kid's AC.
+  # Managed by automations/comed_ac_bedroom_hold.yaml.
+  bedroom_2_manual_hold:
+    name: Bedroom 2 AC Manual Hold
+    icon: mdi:snowflake-alert
+  bedroom_3_manual_hold:
+    name: Bedroom 3 AC Manual Hold
+    icon: mdi:snowflake-alert
+  primary_bedroom_manual_hold:
+    name: Primary Bedroom AC Manual Hold
+    icon: mdi:snowflake-alert
+
 sensor:
   # Long window: rises slowly during multi-day price events (heatwaves),
   # so spikes still register as spikes against it.

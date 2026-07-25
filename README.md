@@ -12,6 +12,7 @@ Home Assistant automations for managing home energy load based on [ComEd hourly 
 | `automations/ev_charging.yaml` | EV charger - four SOC-based charging tiers relative to rolling mean |
 | `automations/dehumidifier.yaml` | Dehumidifier - runs only when price < 80% of mean and windows are closed |
 | `automations/radiator.yaml` | Oil radiator - runs when price is zero or negative and it's cold outside |
+| `automations/comed_ac_bedroom_hold.yaml` | Lets window-unit bedrooms be manually run during `windows_open` and held until release |
 | `scripts/apply_ac_settings.yaml` | AC zone implementation - called by AC Mode Manager |
 | `packages/comed_ac_helpers.yaml` | All required helpers |
 
@@ -52,13 +53,26 @@ Then calls `script.apply_ac_settings` to implement zone-level logic.
 
 ### Override Modes
 
-`input_select.ac_override_mode` has three options that bypass normal price logic:
+`input_select.ac_override_mode` has four options that bypass normal price logic:
 
 | Option | Description |
 |---|---|
 | `none` | Normal price-aware operation |
 | `comfort` | Full comfort regardless of price - resets to `none` at midnight |
 | `away` | Power saving for multi-day absences - must be turned off manually |
+| `windows_open` | Force all AC off (whole house airing out) - but see manual hold below |
+
+### Manual Hold for Window-Unit Bedrooms
+
+The kids' rooms (bedroom 2/3) each have their only window occupied by the AC unit, so they can't be aired out. In `windows_open` mode the script normally force-OFFs them on every price change. To run one anyway, just turn its switch on: `automations/comed_ac_bedroom_hold.yaml` detects the manual on (only ON transitions during `windows_open` count as manual, since the script never turns these on itself) and holds it against the script until release.
+
+| Room | Held until |
+|---|---|
+| Bedroom 3 (toddler) | 07:00, manual-off, or any override change |
+| Primary bedroom | 07:00, manual-off, or any override change |
+| Bedroom 2 (baby) | manual-off or any override change (no morning timer — may sleep in) |
+
+`away` needs no special handling: holds only get set during `windows_open`, and switching into `away` fires the override-change release, so `away` always force-OFFs.
 
 ### Living Room AC Decision Table
 
@@ -149,9 +163,12 @@ Turns on when ComEd price drops to zero or negative cents and outside temperatur
 |---|---|---|
 | `input_select.ac_price_tier` | Dropdown | normal, high, extreme |
 | `input_select.ac_time_window` | Dropdown | awake, night |
-| `input_select.ac_override_mode` | Dropdown | none, comfort, away |
+| `input_select.ac_override_mode` | Dropdown | none, comfort, away, windows_open |
 | `input_boolean.windows_open` | Toggle | On when windows are open |
 | `input_boolean.ev_charge_override` | Toggle | Forces EV charging regardless of price |
+| `input_boolean.bedroom_2_manual_hold` | Toggle | Manual-hold flag, bedroom 2 (managed by bedroom-hold automation) |
+| `input_boolean.bedroom_3_manual_hold` | Toggle | Manual-hold flag, bedroom 3 (managed by bedroom-hold automation) |
+| `input_boolean.primary_bedroom_manual_hold` | Toggle | Manual-hold flag, primary bedroom (managed by bedroom-hold automation) |
 
 ---
 

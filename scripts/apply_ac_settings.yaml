@@ -8,6 +8,9 @@
 #   input_select.ac_price_tier
 #   input_select.ac_time_window
 #   input_boolean.ac_comfort_override
+#   input_boolean.bedroom_2_manual_hold        — set by automations/comed_ac_bedroom_hold.yaml
+#   input_boolean.bedroom_3_manual_hold        — set by automations/comed_ac_bedroom_hold.yaml
+#   input_boolean.primary_bedroom_manual_hold  — set by automations/comed_ac_bedroom_hold.yaml
 #
 # Required entities:
 #   climate.dining_room_living_room_air_conditioner  — LG smart AC unit
@@ -279,6 +282,7 @@ sequence:
           entity_id: climate.dining_room_living_room_air_conditioner
         data:
           fan_mode: high
+    continue_on_error: true
   - alias: Primary bedroom AC
     choose:
       - conditions:
@@ -286,6 +290,9 @@ sequence:
             entity_id: input_select.ac_override_mode
             state:
               - windows_open
+          - condition: state
+            entity_id: input_boolean.primary_bedroom_manual_hold
+            state: "off"
         sequence:
           - type: turn_off
             device_id: c50bdfd9f6a628a01873cffa8bca5247
@@ -345,6 +352,9 @@ sequence:
           - condition: state
             entity_id: input_select.ac_override_mode
             state: windows_open
+          - condition: state
+            entity_id: input_boolean.bedroom_2_manual_hold
+            state: "off"
         sequence:
           - action: switch.turn_off
             target:
@@ -363,12 +373,16 @@ sequence:
         target:
           entity_id: switch.bedroom_2_a_c
         data: {}
+    enabled: true
   - alias: Bedroom 3 AC
     choose:
       - conditions:
           - condition: state
             entity_id: input_select.ac_override_mode
             state: windows_open
+          - condition: state
+            entity_id: input_boolean.bedroom_3_manual_hold
+            state: "off"
         sequence:
           - action: switch.turn_off
             target:
@@ -395,4 +409,5 @@ sequence:
       - action: switch.turn_off
         target:
           entity_id: switch.bedroom_3_a_c
+    enabled: true
 mode: queued
