@@ -98,6 +98,15 @@ The kids' rooms (bedroom 2/3) each have their only window occupied by the AC uni
 | away | awake | off |
 | none | any | on (except extreme pricing 5:30am–8pm) |
 
+### Bedroom 2 AC
+
+| Override | State |
+|---|---|
+| away | off |
+| none/comfort | off Mon–Fri 7am–4:30pm; on all other times, all day on weekends |
+
+No price logic. A manual hold survives the weekday-daytime off (bedroom 2's hold has no morning release - the baby may sleep in).
+
 ### Bedroom 3 AC
 
 | Override | State |
