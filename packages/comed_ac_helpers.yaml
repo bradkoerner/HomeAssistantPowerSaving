@@ -58,46 +58,63 @@ input_boolean:
     icon: mdi:snowflake-alert
 
 sensor:
-  # Long window: rises slowly during multi-day price events (heatwaves),
-  # so spikes still register as spikes against it.
   - platform: statistics
-    name: ComEd Price Mean 14d
-    unique_id: comed_price_mean_14d
+    name: ComEd Price Mean 3d
+    unique_id: comed_price_mean_3d
     entity_id: sensor.comed_current_hour_average_price
     state_characteristic: mean
-    max_age:
-      hours: 336
-    sampling_size: 4500
+    max_age: { hours: 72 }
+    sampling_size: 1000
 
-  # Short window: falls quickly once prices normalize. Median (not mean)
-  # so brief spikes inside the window don't drag it up.
   - platform: statistics
-    name: ComEd Price Median 3d
-    unique_id: comed_price_median_3d
+    name: ComEd Price Median 24h
+    unique_id: comed_price_median_24h
     entity_id: sensor.comed_current_hour_average_price
     state_characteristic: median
-    max_age:
-      hours: 72
-    sampling_size: 1000
+    max_age: { hours: 24 }
+    sampling_size: 400
 
 template:
   - sensor:
-      # Asymmetric baseline: min(long mean, short median) rises slowly and
-      # falls fast. Floored at 3 ¢/kWh so multiplier comparisons stay sane
-      # when real-time prices dip near or below zero.
-      - name: ComEd Price Baseline
-        unique_id: comed_price_baseline
-        unit_of_measurement: ¢/kWh
-        state_class: measurement
-        icon: mdi:calculator
+    - name: ComEd Price Baseline
+      unique_id: comed_price_baseline
+      unit_of_measurement: ¢/kWh
+      state_class: measurement
+      state: >
+        {% set m = states('sensor.comed_price_mean_3d') | float(none) %}
+        {% set d = states('sensor.comed_price_median_24h') | float(none) %}
+        {{ [[m, d] | reject('none') | min, 1.0] | max | round(3) }}
+      availability: >
+        {{ states('sensor.comed_price_mean_3d') | float(none) is not none
+           or states('sensor.comed_price_median_24h') | float(none) is not none }}
+
+  # Scheduled-occupancy windows for the two kids' rooms.
+  #
+  # Single source of truth, consumed in two places:
+  #   - scripts/apply_ac_settings.yaml     — decides on/off
+  #   - automations/comed_ac_bedroom_hold.yaml — decides whether an ON was manual
+  #
+  # That second use is why these must live in one place. The manual-hold logic
+  # rests on "the script only ever turns these rooms ON inside their window, so
+  # an ON while the window is closed can only be a human." If the two files ever
+  # disagreed about the window, the script's own turn-ons would start latching
+  # holds. Templates referencing now() re-render at the top of every minute, so
+  # these flip exactly on the boundary.
+  - binary_sensor:
+      - name: Bedroom 2 AC Scheduled
+        unique_id: bedroom_2_ac_scheduled
+        icon: mdi:calendar-clock
         state: >
-          {% set long = states('sensor.comed_price_mean_14d') | float(none) %}
-          {% set short = states('sensor.comed_price_median_3d') | float(none) %}
-          {% if long is none or short is none %}
-            unavailable
-          {% else %}
-            {{ [ [long, short] | min, 3.0 ] | max | round(2) }}
-          {% endif %}
-        availability: >
-          {{ states('sensor.comed_price_mean_14d') | float(none) is not none
-             and states('sensor.comed_price_median_3d') | float(none) is not none }}
+          {% set t = now() %}
+          {{ t.weekday() >= 5
+             or not (today_at('07:00') <= t < today_at('16:30')) }}
+
+      - name: Bedroom 3 AC Scheduled
+        unique_id: bedroom_3_ac_scheduled
+        icon: mdi:calendar-clock
+        state: >
+          {% set t = now() %}
+          {{ t >= today_at('18:00')
+             or t < today_at('07:00')
+             or (t.weekday() >= 5
+                 and today_at('11:00') <= t <= today_at('15:30')) }}
