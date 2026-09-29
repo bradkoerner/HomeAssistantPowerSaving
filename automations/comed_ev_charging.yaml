@@ -1,8 +1,23 @@
+# EV Smart Charging - ComEd Price Logic
+#
+# The last tier deliberately has no SOC condition. Branches are ordered, so with
+# a working SOC reading the three tiers above it already caught everything below
+# 70%, and it behaves as the "above 70%" tier. With no reading at all - sensor
+# unavailable, kia_uvo poll broken (see comed_ev_soc_refresh.yaml) - the SOC
+# tiers can't match (numeric_state is false for a non-numeric state) and it
+# becomes the blind tier: cheap enough, charge, don't ask how full the car is.
+#
+# 50% of baseline is the price we'd pay for a nearly-full battery, so blind mode
+# is the conservative read. It also has no "charge at any price" floor like the
+# < 30% tier, so a long expensive stretch can leave the car uncharged - that's
+# what input_boolean.ev_charge_override is for.
+
 alias: EV Smart Charging - ComEd Price Logic
 description: >
   Charges EV based on four priority tiers: 1. SOC below 30% → charge always 2.
   SOC 30-50% → charge below 90% of rolling mean 3. SOC 50-70% → charge below 70%
-  of rolling mean 4. SOC above 70% → charge below 50% of rolling mean
+  of rolling mean 4. below 50% of rolling mean → charge regardless of SOC, which
+  covers both a battery above 70% and an unknown battery level
 triggers:
   - trigger: state
     entity_id: sensor.2023_ioniq_5_ev_battery_level
@@ -59,9 +74,6 @@ actions:
               entity_id: switch.car_charger
         alias: EV 50-70% and electricity < 70% of mean
       - conditions:
-          - condition: numeric_state
-            entity_id: sensor.2023_ioniq_5_ev_battery_level
-            above: 70
           - condition: template
             value_template: >
               {{ states('sensor.comed_current_hour_average_price') | float <
@@ -70,7 +82,7 @@ actions:
           - action: switch.turn_on
             target:
               entity_id: switch.car_charger
-        alias: EV above 70% and electricity < 50% of mean
+        alias: Electricity < 50% of mean (EV above 70%, or SOC unknown)
     default:
       - action: switch.turn_off
         target:

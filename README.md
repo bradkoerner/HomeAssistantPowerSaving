@@ -127,9 +127,11 @@ Four SOC-based tiers - the lower the battery, the more aggressively it charges:
 | < 30% | Always (emergency threshold) |
 | 30–50% | Price < 90% of rolling mean |
 | 50–70% | Price < 70% of rolling mean |
-| > 70% | Price < 50% of rolling mean |
+| > 70% *or unknown* | Price < 50% of rolling mean |
 
-All SOC tiers include a staleness check - if the battery sensor hasn't updated in 30 minutes, that tier is skipped to avoid acting on stale data. `input_boolean.ev_charge_override` forces charging regardless of price.
+The bottom tier has no SOC condition at all, so it doubles as the blind-charging path when the battery sensor is unavailable: below 50% of the baseline, charge and don't ask how full the car is. Branch order does the work - with a working SOC reading the tiers above it have already claimed everything under 70%.
+
+Blind charging has no "charge at any price" floor like the < 30% tier, so a long run of expensive hours can leave the car uncharged. `input_boolean.ev_charge_override` forces charging regardless of price.
 
 ---
 
