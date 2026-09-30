@@ -24,7 +24,7 @@ triggers:
   - trigger: state
     entity_id: sensor.comed_current_hour_average_price
   - trigger: time_pattern
-    minutes: "/15"
+    minutes: /15
   - trigger: homeassistant
     event: start
 conditions: []
@@ -33,7 +33,7 @@ actions:
       - conditions:
           - condition: state
             entity_id: input_boolean.ev_charge_override
-            state: "on"
+            state: 'on'
         sequence:
           - action: switch.turn_on
             target:
@@ -54,16 +54,26 @@ actions:
           - condition: template
             value_template: >
               {{ states('sensor.comed_current_hour_average_price') | float <
-              states('sensor.comed_price_baseline') | float * 0.90 }}
+              states('sensor.comed_price_baseline') | float * 1.0 }}
         sequence:
           - action: switch.turn_on
             target:
               entity_id: switch.car_charger
-        alias: EV 30-50% and electricity < 90% of mean
+        alias: EV 30-50% and electricity < 100% of average
       - conditions:
           - condition: numeric_state
             entity_id: sensor.2023_ioniq_5_ev_battery_level
             below: 70
+          - condition: template
+            value_template: >
+              {{ states('sensor.comed_current_hour_average_price') | float <
+              states('sensor.comed_price_baseline') | float * 0.85 }}
+        sequence:
+          - action: switch.turn_on
+            target:
+              entity_id: switch.car_charger
+        alias: EV 50-70% and electricity < 85% of mean
+      - conditions:
           - condition: template
             value_template: >
               {{ states('sensor.comed_current_hour_average_price') | float <
@@ -72,17 +82,7 @@ actions:
           - action: switch.turn_on
             target:
               entity_id: switch.car_charger
-        alias: EV 50-70% and electricity < 70% of mean
-      - conditions:
-          - condition: template
-            value_template: >
-              {{ states('sensor.comed_current_hour_average_price') | float <
-              states('sensor.comed_price_baseline') | float * 0.50 }}
-        sequence:
-          - action: switch.turn_on
-            target:
-              entity_id: switch.car_charger
-        alias: Electricity < 50% of mean (EV above 70%, or SOC unknown)
+        alias: Electricity < 70% of mean (don't care what EV is)
     default:
       - action: switch.turn_off
         target:
